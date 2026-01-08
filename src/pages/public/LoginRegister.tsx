@@ -205,7 +205,7 @@ export const RegisterPage = () => {
             title="Create an account"
             subtitle="Start your 14-day free trial today"
         >
-            <form onSubmit={handleRegister} className="space-y-6">
+            <form onSubmit={otpSent ? handleVerify : handleRegister} className="space-y-6">
                 {!otpSent ? (
                 <>
                 <div className="grid grid-cols-2 gap-4">
