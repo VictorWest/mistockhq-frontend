@@ -1,10 +1,16 @@
-const rawApiBase = (import.meta.env.VITE_API_BASE as string) || 'https://mistockhq-backend.vercel.app/'
+const rawApiBase = 'https://mistockhq-backend.vercel.app'
+// const rawApiBase = 'http://localhost:3000'
+
 const API_BASE = rawApiBase.replace(/\/+$/, '') // trim trailing slash(es)
 
 type ApiPayload = Record<string, unknown>
 
 async function request(path: string, opts: RequestInit = {}){
-  const res = await fetch(`${API_BASE}${path}`, { headers: { 'Content-Type': 'application/json' }, ...opts })
+  const res = await fetch(`${API_BASE}${path}`, { 
+    headers: { 'Content-Type': 'application/json' }, 
+    credentials: 'include', // Include cookies in requests
+    ...opts 
+  })
   if (!res.ok) {
     const err = await res.json().catch(() => ({ message: res.statusText })) as { message?: string }
     throw new Error(err.message || 'API error')
@@ -17,6 +23,9 @@ export const api = {
   login: (email: string, password: string) => request('/api/auth/login', { method: 'POST', body: JSON.stringify({ email, password }) }),
   sendOtp: (email: string, resend?: boolean) => request(`/api/auth/send-otp/${encodeURIComponent(email)}?resend=${!!resend}`),
   verifyOtp: (email: string, otp: string, payload: ApiPayload) => request(`/api/auth/verify-otp/${encodeURIComponent(email)}/${encodeURIComponent(otp)}`, { method: 'POST', body: JSON.stringify(payload) }),
+
+  // User
+  updateIndustry: (userEmail: string, industry: string) => request(`/api/user/update-industry/${encodeURIComponent(userEmail)}?industry=${encodeURIComponent(industry)}`, { method: 'POST' }),
 
   // Vendors
   listVendorsPublic: (category?: string) => request(`/api/vendors/public${category ? `?category=${encodeURIComponent(category)}` : ''}`),

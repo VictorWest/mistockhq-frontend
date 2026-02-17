@@ -8,6 +8,7 @@ import IndustrySetup from './IndustrySetup';
 interface OnboardingModalProps {
   isOpen: boolean;
   onIndustrySelect: (industry: string) => void;
+  isLoading?: boolean;
 }
 
 const industries = [
@@ -21,7 +22,7 @@ const industries = [
   { id: 'general', name: 'General Purpose', subtitle: 'Multi-Industry, Custom', icon: '⚙️', group: 'GROUP 6' },
 ];
 
-const OnboardingModal: React.FC<OnboardingModalProps> = ({ isOpen, onIndustrySelect }) => {
+const OnboardingModal: React.FC<OnboardingModalProps> = ({ isOpen, onIndustrySelect, isLoading = false }) => {
   const [selectedIndustry, setSelectedIndustry] = useState<string>('');
   const [showSetup, setShowSetup] = useState(false);
 
@@ -36,7 +37,9 @@ const OnboardingModal: React.FC<OnboardingModalProps> = ({ isOpen, onIndustrySel
   };
 
   const handleFinishSetup = () => {
-    onIndustrySelect(selectedIndustry);
+    if (selectedIndustry && !isLoading) {
+      onIndustrySelect(selectedIndustry);
+    }
   };
 
   const handleBack = () => {
@@ -81,11 +84,11 @@ const OnboardingModal: React.FC<OnboardingModalProps> = ({ isOpen, onIndustrySel
             <div className="flex justify-center">
               <Button 
                 onClick={handleContinue}
-                disabled={!selectedIndustry}
+                disabled={!selectedIndustry || isLoading}
                 size="lg"
                 className="px-8"
               >
-                Continue Setup
+                {isLoading ? 'Saving...' : 'Continue Setup'}
               </Button>
             </div>
           </>
@@ -93,11 +96,11 @@ const OnboardingModal: React.FC<OnboardingModalProps> = ({ isOpen, onIndustrySel
           <>
             <IndustrySetup industryId={selectedIndustry} />
             <div className="flex justify-between mt-6">
-              <Button variant="outline" onClick={handleBack}>
+              <Button variant="outline" onClick={handleBack} disabled={isLoading}>
                 Back
               </Button>
-              <Button onClick={handleFinishSetup} size="lg" className="px-8">
-                Complete Setup
+              <Button onClick={handleFinishSetup} size="lg" className="px-8" disabled={isLoading}>
+                {isLoading ? 'Saving...' : 'Complete Setup'}
               </Button>
             </div>
           </>

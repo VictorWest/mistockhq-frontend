@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import OnboardingModal from './OnboardingModal';
 import DashboardHeader from './DashboardHeader';
 import Sidebar from './Sidebar';
@@ -20,17 +20,38 @@ import ReportedVendorsModule from './modules/ReportedVendorsModule';
 import { Button } from '@/components/ui/button';
 import { Settings } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { useAppContext } from '@/contexts/AppContext';
+import api from '@/lib/api';
 
 const AppLayout: React.FC = () => {
-  const [showOnboarding, setShowOnboarding] = useState(true);
-  const [selectedIndustry, setSelectedIndustry] = useState('');
+  const { selectedIndustry, setSelectedIndustry, setCompanyName, companyName, user, isAuthenticated } = useAppContext();
   const [activeModule, setActiveModule] = useState('inventory');
-  const [companyName, setCompanyName] = useState('Mistock HQ');
+  const [showOnboarding, setShowOnboarding] = useState(!selectedIndustry && isAuthenticated);
+  const [isSaving, setIsSaving] = useState(false);
 
-  const handleIndustrySelect = (industry: string) => {
-    setSelectedIndustry(industry);
-    setShowOnboarding(false);
-    setCompanyName(`${industry.charAt(0).toUpperCase() + industry.slice(1)} Company`);
+  // Update modal visibility when selectedIndustry or auth status changes
+  useEffect(() => {
+    setShowOnboarding(!selectedIndustry && isAuthenticated);
+  }, [selectedIndustry, isAuthenticated]);
+
+  const handleIndustrySelect = async (industry: string) => {
+    setIsSaving(true);
+    try {
+      // Update in database
+      if (user?.email) {
+        await api.updateIndustry(user.email, industry);
+      }
+      
+      // Update in context (saves to localStorage)
+      setSelectedIndustry(industry);
+      setCompanyName(`${industry.charAt(0).toUpperCase() + industry.slice(1)} Company`);
+      setShowOnboarding(false);
+    } catch (error) {
+      console.error('Failed to update industry:', error);
+      alert('Failed to save industry selection. Please try again.');
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const renderModule = () => {
@@ -86,6 +107,7 @@ const AppLayout: React.FC = () => {
       <OnboardingModal
         isOpen={showOnboarding}
         onIndustrySelect={handleIndustrySelect}
+        isLoading={isSaving}
       />
 
       <div className="flex h-screen">

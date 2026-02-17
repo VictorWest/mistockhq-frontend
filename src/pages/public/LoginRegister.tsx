@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Link, useNavigate } from 'react-router-dom';
-import { Eye, EyeOff, Facebook, Mail, ArrowRight, CheckCircle, Smartphone } from 'lucide-react';
+import { Eye, EyeOff, CheckCircle, Smartphone } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
 
 const AuthLayout = ({ children, title, subtitle }: { children: React.ReactNode, title: string, subtitle: string }) => (
@@ -66,18 +66,37 @@ export const LoginPage = () => {
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState<string | null>(null)
     const navigate = useNavigate();
-    const { setUser, setUserRole } = useAppContext()
+    const { setUser, setUserRole, setSelectedIndustry } = useAppContext()
 
     const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault();
         setError(null)
         setLoading(true)
         try {
-            const resp = await api.login(email, password) as { id?: string, fullName?: string, businessName?: string, email?: string, designation?: string }
-            // resp: { id, fullName, businessName, email, designation }
-            setUser({ email: resp.email || '', fullName: resp.fullName || '', designation: resp.designation || 'user' })
-            const role = resp.designation === 'super' ? 'superadmin' : resp.designation === 'vendor' ? 'vendor' : 'user'
+            const resp = await api.login(email, password) as { success: string, message: string, data: { id?: string, fullName?: string, businessName?: string, email?: string, designation?: string, industry?: string } } 
+            // resp: { id, fullName, businessName, email, designation, industry }
+            
+            if (!resp.success) {
+                throw new Error('Invalid login response')
+            }
+            
+            const { data } = resp
+                        
+            setUser({ 
+                email: data.email, 
+                fullName: data.fullName || '', 
+                designation: data.designation || 'user' 
+            })
+            
+            const role = data.designation === 'super' ? 'superadmin' : data.designation === 'vendor' ? 'vendor' : 'user'
             setUserRole(role)
+            
+            // Set industry if available from response
+            if (data.industry) {
+                setSelectedIndustry(data.industry)
+            }
+            
+            // Navigate after state is set
             navigate('/dashboard')
         } catch (err: unknown) {
             console.log(err)
@@ -94,7 +113,7 @@ export const LoginPage = () => {
             subtitle="Enter your credentials to access your account"
         >
             <form onSubmit={handleLogin} className="space-y-6">
-                <div>
+                {/* <div>
                     <Button variant="outline" className="w-full h-11 font-medium bg-white hover:bg-slate-50 relative" type="button">
                         <svg className="mr-2 h-5 w-5" viewBox="0 0 24 24">
                             <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4" />
@@ -104,12 +123,12 @@ export const LoginPage = () => {
                         </svg>
                         Sign in with Google
                     </Button>
-                </div>
+                </div> */}
 
-                <div className="relative">
+                {/* <div className="relative">
                     <div className="absolute inset-0 flex items-center"><Separator /></div>
                     <div className="relative flex justify-center text-xs uppercase"><span className="bg-white px-2 text-slate-500">Or continue with</span></div>
-                </div>
+                </div> */}
 
                 <div className="space-y-4">
                     <div className="space-y-2">
@@ -124,6 +143,7 @@ export const LoginPage = () => {
                         <div className="relative">
                             <Input
                                 id="password"
+                                type={showPassword ? "text" : "password"}
                                 value={password}
                                 onChange={(e) => setPassword(e.target.value)}
                             />
@@ -166,7 +186,7 @@ export const RegisterPage = () => {
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState<string | null>(null)
     const navigate = useNavigate();
-    const { setUser, setUserRole } = useAppContext()
+    const { setUser, setUserRole, setSelectedIndustry } = useAppContext()
 
     const handleRegister = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -189,10 +209,22 @@ export const RegisterPage = () => {
             const fullName = `${firstName} ${lastName}`
             await api.verifyOtp(email, otp, { fullName, businessName: fullName, email, password })
             // automatically sign in the newly created user
-            const resp = await api.login(email, password) as { id?: string, fullName?: string, businessName?: string, email?: string, designation?: string }
-            setUser({ email: resp.email || email, fullName: resp.fullName || fullName, designation: resp.designation || 'user' })
-            const role = resp.designation === 'super' ? 'superadmin' : resp.designation === 'vendor' ? 'vendor' : 'user'
+            const resp = await api.login(email, password) as { success: string, message: string, data: { id?: string, fullName?: string, businessName?: string, email?: string, designation?: string, industry?: string } }
+            
+            if (!resp.success) {
+                throw new Error('Login after registration failed')
+            }
+            
+            const { data } = resp
+            setUser({ email: data.email || email, fullName: data.fullName || fullName, designation: data.designation || 'user' })
+            const role = data.designation === 'super' ? 'superadmin' : data.designation === 'vendor' ? 'vendor' : 'user'
             setUserRole(role)
+            
+            // Set industry if available (should be 'general' for new users)
+            if (data.industry) {
+                setSelectedIndustry(data.industry)
+            }
+            
             navigate('/dashboard')
         } catch (err: unknown) {
             const message = err instanceof Error ? err.message : String(err)
